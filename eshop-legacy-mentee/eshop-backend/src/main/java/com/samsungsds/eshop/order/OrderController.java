@@ -2,6 +2,7 @@ package com.samsungsds.eshop.order;
 
 import java.util.stream.Stream;
 
+import org.springframework.amqp.rabbit.core.RabbitTemplate; 
 import com.google.common.collect.Iterables;
 import com.samsungsds.eshop.cart.CartItem;
 import com.samsungsds.eshop.cart.CartService;
@@ -25,6 +26,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping(value = "/api/checkouts")
 public class OrderController {
+
+
     private final Logger logger = LoggerFactory.getLogger(OrderController.class);
     private final OrderService orderService;
     private final ShippingService shippingService;
@@ -32,16 +35,20 @@ public class OrderController {
     private final PaymentService paymentService;
     private final ProductService productService;
 
+    private final RabbitTemplate rabbitTemplate; 
+
     public OrderController(final OrderService orderService, 
     final ShippingService shippingService,
     final  PaymentService paymentService,
     final CartService cartService,
-    final ProductService productService) {
+    final ProductService productService,
+    final RabbitTemplate rabbitTemplate) { 
         this.orderService = orderService;
         this.shippingService = shippingService;
         this.paymentService = paymentService;
         this.cartService = cartService;
         this.productService = productService;
+        this.rabbitTemplate = rabbitTemplate; 
     }
 
     @PostMapping(value = "/orders")
@@ -54,6 +61,7 @@ public class OrderController {
 
         // cart 상품 조회
         Product[] products = getProducts(cartItems);
+
 
         // 상품 가격 합계 계산
         Money itemPrice = orderService.calculateItemPrice(cartItems, products);
@@ -76,6 +84,8 @@ public class OrderController {
 
         // 주문ID 생성
         String orderId = orderService.createOrderId(orderRequest);
+        
+        rabbitTemplate.convertAndSend("eshop-exchange","order.placed", new OrderPlaced(orderId));
 
         // 카트 비우기
         cartService.emptyCart();

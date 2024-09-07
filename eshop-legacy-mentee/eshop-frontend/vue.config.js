@@ -1,5 +1,7 @@
 module.exports = {
   // Local Legacy
+
+  /** 
   devServer: {
     proxy: {
         "^/": {
@@ -8,6 +10,7 @@ module.exports = {
     },
     disableHostCheck: true
   }
+    */
 
   // EC2 OR Dockerize & skaffold
   // devServer: {
